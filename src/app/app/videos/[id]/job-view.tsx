@@ -22,9 +22,9 @@ export default function JobView({ job: initial }: { job: any }) {
     return () => clearInterval(iv);
   }, [job.id, job.status]);
 
-  // Generate fallback video in browser when HF is unreachable
+  // Generate fallback video in browser when provider is local-fallback
   useEffect(() => {
-    if (!job.outputUrl?.includes("fallback-video") || generatingFallback || fallbackVideoUrl) return;
+    if (job.provider !== "local-fallback" || generatingFallback || fallbackVideoUrl) return;
     setGeneratingFallback(true);
 
     const canvas = document.createElement("canvas");
@@ -134,7 +134,7 @@ export default function JobView({ job: initial }: { job: any }) {
     toast("Prompt copied!", "success");
   }
 
-  const showFallback = job.outputUrl?.includes("fallback-video");
+  const showFallback = job.provider === "local-fallback";
   const showError = (job.status === "failed" || (!job.outputUrl && job.status === "succeeded")) && !showFallback;
 
   return (
