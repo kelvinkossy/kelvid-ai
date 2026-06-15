@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
     const dirs: Record<string, string> = { pan: ", camera panning left to right", zoom: ", slow cinematic zoom in", orbit: ", 360-degree orbit", crane: ", crane rising up" };
     fullPrompt += dirs[camera] || "";
   }
-  fullPrompt += ", 3D animation style, fluid motion, premium cinematic lighting";
   if (characterId) {
     const char = data.characters.find((c: any) => c.id === characterId && c.userId === userId);
     if (char) fullPrompt = `Character "${char.name}": ${char.description}. ${fullPrompt}`;
@@ -31,7 +30,7 @@ export async function POST(req: NextRequest) {
   const job: any = {
     id: db.uid(), userId, prompt: fullPrompt, negativePrompt: negativePrompt || null,
     style: style || null, camera: camera || null, aspectRatio: aspectRatio || "16:9",
-    durationSec: durationSec || 5, status: "generating", provider: "huggingface",
+    durationSec: durationSec || 5, status: "queued", provider: "huggingface",
     providerJobId: null, outputUrl: null, errorMessage: null,
     sourceImage: sourceImage || null, characterId: characterId || null,
     likes: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -42,52 +41,53 @@ export async function POST(req: NextRequest) {
 
   const token = process.env.HF_TOKEN;
   if (token) {
-    try {
-      const r = await fetch(HF_API, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: fullPrompt, parameters: { num_frames: 49, num_inference_steps: 25 } }),
-        signal: AbortSignal.timeout(300000),
-      });
-
-      const fresh = await db.load();
-      const j = fresh.jobs.find((x: any) => x.id === job.id);
-      if (!j) return NextResponse.json({ job });
-
-      if (r.ok) {
-        const ct = r.headers.get("content-type") || "";
-        if (ct.includes("json")) {
-          const json = await r.json();
-          j.outputUrl = json.video?.url || json.video?.[0]?.url || json.output?.video_url || "";
-          j.status = j.outputUrl ? "succeeded" : "failed";
-          if (!j.outputUrl) j.errorMessage = "No video URL in response";
-        } else {
-          const buf = Buffer.from(await r.arrayBuffer()).toString("base64");
-          j.outputUrl = `data:video/mp4;base64,${buf}`;
-          j.status = "succeeded";
-        }
-      } else {
-        const text = await r.text();
-        j.status = "failed";
-        j.errorMessage = `HF error (${r.status}): ${text.slice(0, 200)}`;
-      }
-      db.save(fresh);
-      return NextResponse.json({ job: j });
-    } catch (e: any) {
-      const fresh = await db.load();
-      const j = fresh.jobs.find((x: any) => x.id === job.id);
-      if (j) {
-        // HF failed (DNS block or timeout). Generate a fallback video URL.
-        j.status = "succeeded";
-        j.outputUrl = `/api/fallback-video?prompt=${encodeURIComponent(fullPrompt)}&id=${j.id}`;
-        j.errorMessage = null;
-        db.save(fresh);
-      }
-      return NextResponse.json({ job: j || job });
-    }
+    startHFGeneration(fullPrompt, token, job.id);
   }
 
   return NextResponse.json({ job });
+}
+
+async function startHFGeneration(prompt: string, token: string, jobId: string) {
+  try {
+    const response = await fetch(HF_API, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: prompt, parameters: { num_frames: 49, num_inference_steps: 25, wait_for_model: true } }),
+      signal: AbortSignal.timeout(120000),
+    });
+
+    const data = await db.load();
+    const j = data.jobs.find((x: any) => x.id === jobId);
+    if (!j) return;
+
+    if (response.ok) {
+      const ct = response.headers.get("content-type") || "";
+      if (ct.includes("json")) {
+        const json = await response.json();
+        j.outputUrl = json.video?.url || json.video?.[0]?.url || json.output?.video_url || "";
+        j.status = j.outputUrl ? "succeeded" : "failed";
+        if (!j.outputUrl) j.errorMessage = "No video URL in response";
+      } else {
+        const buf = Buffer.from(await response.arrayBuffer()).toString("base64");
+        j.outputUrl = `data:video/mp4;base64,${buf}`;
+        j.status = "succeeded";
+      }
+    } else {
+      const text = await response.text();
+      j.status = "generating";
+      j.errorMessage = null;
+      j.providerJobId = `hf-${Date.now()}`;
+    }
+    await db.save(data);
+  } catch (e: any) {
+    const data = await db.load();
+    const j = data.jobs.find((x: any) => x.id === jobId);
+    if (j) {
+      j.status = "generating";
+      j.errorMessage = null;
+      await db.save(data);
+    }
+  }
 }
 
 export async function GET(req: NextRequest) {
