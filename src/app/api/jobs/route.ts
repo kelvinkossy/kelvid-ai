@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db, UNLIMITED_USERS } from "@/lib/db";
 
-const HF_API = "https://api-inference.huggingface.co/models/Lightricks/LTX-Video-0.9.8-13B-distilled";
+const HF_API = "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
