@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   if (characterId) {
     const char = data.characters.find((c: any) => c.id === characterId && c.userId === userId);
     if (char) fullPrompt = `Character "${char.name}": ${char.description}. ${fullPrompt}`;
+  }
 
   const job: any = {
     id: db.uid(), userId, prompt: fullPrompt, negativePrompt: negativePrompt || null,
