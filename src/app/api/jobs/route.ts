@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { db, UNLIMITED_USERS } from "@/lib/db";
 import { generateFallbackVideo } from "@/lib/fallback-video";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
   const job: any = {
     id: jobId, userId, prompt: fullPrompt, negativePrompt: negativePrompt || null,
     style: style || null, camera: camera || null, aspectRatio: aspectRatio || "16:9",
-    durationSec: durationSec || 5, status: "succeeded", provider: "local-fallback",
+    durationSec: durationSec || 5, status: "generating", provider: "local-fallback",
     providerJobId: null, outputUrl: null, errorMessage: null,
     sourceImage: sourceImage || null, characterId: characterId || null,
     likes: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -41,47 +43,132 @@ export async function POST(req: NextRequest) {
   if (!isUnlimited) user.creditBalance -= 1;
   await db.save(data);
 
-  // Try HF in background - if it succeeds, update the job
-  const token = process.env.HF_TOKEN;
-  if (token) {
-    tryHFGeneration(fullPrompt, token, jobId, data);
+  const replicateToken = process.env.REPLICATE_API_TOKEN;
+  const hfToken = process.env.HF_TOKEN;
+  let generated = false;
+
+  if (replicateToken) {
+    generated = await tryReplicate(fullPrompt, durationSec || 5, replicateToken, jobId);
+  }
+
+  if (!generated && hfToken) {
+    generated = await tryHFGeneration(fullPrompt, hfToken, jobId);
+  }
+
+  const fresh = await db.load();
+  const updatedJob = fresh.jobs.find((j: any) => j.id === jobId);
+
+  if (!generated && updatedJob) {
+    updatedJob.status = "succeeded";
+    updatedJob.provider = "local-fallback";
+    await db.save(fresh);
   }
 
   return NextResponse.json({
-    job,
-    fallbackVideo: fallbackVideoData,
+    job: updatedJob || job,
+    fallbackVideo: generated ? null : fallbackVideoData,
   });
 }
 
-async function tryHFGeneration(prompt: string, token: string, jobId: string, data: any) {
+async function tryReplicate(prompt: string, durationSec: number, token: string, jobId: string): Promise<boolean> {
   try {
-    const response = await fetch("https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b", {
+    const createRes = await fetch("https://api.replicate.com/v1/models/stability-ai/stable-video-diffusion/predictions", {
+      method: "POST",
+      headers: { Authorization: `Token ${token}`, "Content-Type": "application/json", "Prefer": "wait" },
+      body: JSON.stringify({
+        input: { prompt, negative_prompt: "blurry, low quality, distorted, ugly", video_length: `${Math.min(durationSec || 5, 15)}_frames`, width: 576, height: 1024 },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!createRes.ok) return false;
+    const prediction = await createRes.json();
+
+    const videoUrl = (prediction.status === "succeeded" && prediction.output)
+      ? (Array.isArray(prediction.output) ? prediction.output[0] : prediction.output)
+      : null;
+
+    if (videoUrl) {
+      const data = await db.load();
+      const j = data.jobs.find((x: any) => x.id === jobId);
+      if (j) { j.status = "succeeded"; j.outputUrl = videoUrl; j.provider = "replicate"; j.providerJobId = prediction.id; await db.save(data); }
+      return true;
+    }
+
+    if (prediction.id) return await pollReplicate(prediction.id, token, jobId);
+    return false;
+  } catch { return false; }
+}
+
+async function pollReplicate(predictionId: string, token: string, jobId: string): Promise<boolean> {
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: { Authorization: `Token ${token}` }, signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) break;
+      const pred = await res.json();
+      if (pred.status === "succeeded") {
+        const videoUrl = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+        const data = await db.load();
+        const j = data.jobs.find((x: any) => x.id === jobId);
+        if (j) { j.status = "succeeded"; j.outputUrl = videoUrl; j.provider = "replicate"; j.providerJobId = predictionId; await db.save(data); }
+        return true;
+      }
+      if (pred.status === "failed") {
+        const data = await db.load();
+        const j = data.jobs.find((x: any) => x.id === jobId);
+        if (j) { j.status = "failed"; j.errorMessage = pred.error || "Replicate generation failed"; await db.save(data); }
+        return false;
+      }
+    } catch { break; }
+  }
+  return false;
+}
+
+async function tryHFGeneration(prompt: string, token: string, jobId: string): Promise<boolean> {
+  try {
+    const endpoint = "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b";
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ inputs: prompt, parameters: { wait_for_model: true } }),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(180000),
     });
 
-    if (response.ok) {
-      const ct = response.headers.get("content-type") || "";
-      const fresh = await db.load();
-      const j = fresh.jobs.find((x: any) => x.id === jobId);
-      if (!j) return;
-
-      if (ct.includes("json")) {
-        const json = await response.json();
-        j.outputUrl = json.video?.url || "";
-        j.status = j.outputUrl ? "succeeded" : "failed";
-        j.provider = "huggingface";
-      } else {
-        const buf = Buffer.from(await response.arrayBuffer()).toString("base64");
-        j.outputUrl = `data:video/mp4;base64,${buf}`;
-        j.status = "succeeded";
-        j.provider = "huggingface";
-      }
-      await db.save(fresh);
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      const data = await db.load();
+      const j = data.jobs.find((x: any) => x.id === jobId);
+      if (j) { j.errorMessage = `HF error ${response.status}: ${errBody.slice(0, 200)}`; await db.save(data); }
+      return false;
     }
-  } catch {}
+
+    const ct = response.headers.get("content-type") || "";
+    const data = await db.load();
+    const j = data.jobs.find((x: any) => x.id === jobId);
+    if (!j) return false;
+
+    if (ct.includes("json")) {
+      const json = await response.json();
+      j.outputUrl = json.video?.url || "";
+      j.status = j.outputUrl ? "succeeded" : "failed";
+      j.provider = "huggingface";
+    } else {
+      const buf = Buffer.from(await response.arrayBuffer()).toString("base64");
+      j.outputUrl = `data:video/mp4;base64,${buf}`;
+      j.status = "succeeded";
+      j.provider = "huggingface";
+    }
+    await db.save(data);
+    return j.status === "succeeded";
+  } catch (e: any) {
+    const data = await db.load();
+    const j = data.jobs.find((x: any) => x.id === jobId);
+    if (j) { j.errorMessage = `HF fetch failed: ${e?.message?.slice(0, 100) || "unknown"}`; await db.save(data); }
+    return false;
+  }
 }
 
 export async function GET(req: NextRequest) {

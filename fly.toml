@@ -1,6 +1,10 @@
 app = "vidforge"
 primary_region = "lhr"
 
+[env]
+  FLY_VOLUME_PATH = "/data"
+  NEXT_PUBLIC_BASE_URL = "https://vidforge.fly.dev"
+
 [http_service]
   internal_port = 3000
   force_https = true
@@ -8,21 +12,6 @@ primary_region = "lhr"
   auto_start_machines = true
   min_machines_running = 0
 
-[[services]]
-  port = 80
-  protocol = "tcp"
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 25
-    soft_limit = 20
-  [[services.ports]]
-    port = 443
-    protocol = "tcp"
-  [[services.ports]]
-    port = 80
-    protocol = "tcp"
-    handlers = ["http"]
-  [[services.ports]]
-    port = 443
-    protocol = "tcp"
-    handlers = ["tls"]
+[[mounts]]
+  source = "vidforge_data"
+  destination = "/data"

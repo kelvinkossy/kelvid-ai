@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CREDIT_PACKS, PRICES_NGN } from "@/lib/constants";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const r = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ email: user.email, amount: PRICES_NGN[packId] * 100, currency: "NGN", reference: ref, callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/app/billing`, metadata: { userId, packId, credits: pack.credits } }),
+      body: JSON.stringify({ email: user.email, amount: PRICES_NGN[packId] * 100, currency: "NGN", reference: ref, callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/app/billing`, metadata: { userId, packId, credits: pack.credits } }),
     });
     const result = await r.json();
     if (!result.status) return NextResponse.json({ error: result.message || "Failed" }, { status: 400 });

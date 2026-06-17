@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import crypto from "crypto";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
     const signature = req.headers.get("x-paystack-signature");
     const secret = process.env.PAYSTACK_SECRET_KEY || "";
     const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
-    if (hash !== signature) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    const sig = signature || "";
+    if (!secret || hash.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(sig))) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     const event = JSON.parse(body);
     if (event.event === "charge.success") {
       const ref = event.data.reference;

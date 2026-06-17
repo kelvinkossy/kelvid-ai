@@ -5,30 +5,54 @@ export async function POST(req: NextRequest) {
     const { prompt } = await req.json();
     if (!prompt) return NextResponse.json({ error: "Prompt required" }, { status: 400 });
 
-    const token = process.env.HF_TOKEN;
-    if (!token) {
-      return NextResponse.json({ enhanced: enhanceFallback(prompt), source: "local" });
+    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+    if (deepseekKey) {
+      try {
+        const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${deepseekKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              { role: "system", content: "You enhance video generation prompts. Add cinematic details like lighting, camera angles, mood, and visual style. Keep it under 200 words. Return only the enhanced prompt." },
+              { role: "user", content: `Enhance this prompt: "${prompt}"` },
+            ],
+            max_tokens: 300,
+            temperature: 0.7,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const text = json.choices?.[0]?.message?.content?.trim();
+          if (text && text.length > prompt.length + 5) {
+            return NextResponse.json({ enhanced: text, source: "deepseek" });
+          }
+        }
+      } catch {}
     }
 
-    try {
-      const res = await fetch("https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputs: `<|user|>\nRewrite this video prompt as a highly detailed cinematic description. Add lighting, camera angles, mood, and visual style details. Keep it under 200 words.\n\nOriginal: "${prompt}"\n<|assistant|>\n`,
-          parameters: { max_new_tokens: 300, temperature: 0.7 },
-        }),
-      });
+    const hfToken = process.env.HF_TOKEN;
+    if (hfToken) {
+      try {
+        const res = await fetch("https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${hfToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputs: `<|user|>\nRewrite this video prompt as a highly detailed cinematic description. Add lighting, camera angles, mood, and visual style details. Keep it under 200 words.\n\nOriginal: "${prompt}"\n<|assistant|>\n`,
+            parameters: { max_new_tokens: 300, temperature: 0.7 },
+          }),
+        });
 
-      if (res.ok) {
-        const json = await res.json();
-        const text = Array.isArray(json) ? json[0]?.generated_text || "" : json.generated_text || "";
-        const cleaned = text.split("<|assistant|>").pop()?.trim() || enhanceFallback(prompt);
-        if (cleaned.length > prompt.length + 10) {
-          return NextResponse.json({ enhanced: cleaned, source: "huggingface" });
+        if (res.ok) {
+          const json = await res.json();
+          const text = Array.isArray(json) ? json[0]?.generated_text || "" : json.generated_text || "";
+          const cleaned = text.split("<|assistant|>").pop()?.trim() || enhanceFallback(prompt);
+          if (cleaned.length > prompt.length + 10) {
+            return NextResponse.json({ enhanced: cleaned, source: "huggingface" });
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
 
     return NextResponse.json({ enhanced: enhanceFallback(prompt), source: "fallback" });
   } catch {

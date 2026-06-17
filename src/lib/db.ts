@@ -1,13 +1,14 @@
 import fs from "fs";
 import path from "path";
 
-const DB_PATH = path.join(process.cwd(), "data.json");
+const DATA_DIR = process.env.FLY_VOLUME_PATH || process.cwd();
+const DB_PATH = path.join(DATA_DIR, "data.json");
 
 export interface User { id: string; email: string; passwordHash: string; name: string | null; role: string; creditBalance: number; createdAt: string; }
 export interface VideoJob { id: string; userId: string; prompt: string; negativePrompt: string | null; style: string | null; camera: string | null; aspectRatio: string; durationSec: number; status: string; provider: string; providerJobId: string | null; outputUrl: string | null; errorMessage: string | null; sourceImage: string | null; characterId: string | null; likes: number; createdAt: string; updatedAt: string; }
 export interface Payment { id: string; userId: string; provider: string; paystackReference: string; amount: number; currency: string; creditsPurchased: number; status: string; createdAt: string; updatedAt: string; }
 export interface CharacterProfile { id: string; userId: string; name: string; description: string; imageUrl: string | null; createdAt: string; }
-interface DB { users: User[]; jobs: VideoJob[]; payments: Payment[]; characters: CharacterProfile[]; }
+interface DB { users: User[]; jobs: VideoJob[]; payments: Payment[]; characters: CharacterProfile[]; _likes?: { userId: string; jobId: string; createdAt: string }[]; }
 
 const SEED_USERS = [
   { id: "seed1", email: "kelvinkossy03@gmail.com", passwordHash: "$2b$12$LYjeO7.750u6UKr7OYuAiug7mfidFfkJtFRW0reD7.O5G1KoJbT9.", name: "kelvin nnatu", role: "ADMIN", creditBalance: 999999, createdAt: "2026-06-11T20:05:02.338Z" },
@@ -20,7 +21,10 @@ function load(): DB {
   try { return JSON.parse(fs.readFileSync(DB_PATH, "utf-8")); }
   catch {
     const fresh: DB = { users: SEED_USERS.map(u => ({...u})), jobs: [], payments: [], characters: [] };
-    try { fs.writeFileSync(DB_PATH, JSON.stringify(fresh, null, 2)); } catch {}
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(DB_PATH, JSON.stringify(fresh, null, 2));
+    } catch {}
     return fresh;
   }
 }

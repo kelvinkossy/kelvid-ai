@@ -1,0 +1,9 @@
+{
+  "users": [
+    { "id": "seed1", "email": "kelvinkossy03@gmail.com", "passwordHash": "$2b$12$LYjeO7.750u6UKr7OYuAiug7mfidFfkJtFRW0reD7.O5G1KoJbT9.", "name": "kelvin nnatu", "role": "ADMIN", "creditBalance": 1000, "createdAt": "2026-06-11T20:05:02.338Z" },
+    { "id": "seed2", "email": "kelvin1@gmail.com", "passwordHash": "$2b$12$CUYV4hw7cwUKfacrB/HSquuBSC1y3Q9bTRCengfqaGfBUwyfp8.A2", "name": "kelvin nnatu", "role": "ADMIN", "creditBalance": 1000, "createdAt": "2026-06-12T23:40:57.589Z" }
+  ],
+  "jobs": [],
+  "payments": [],
+  "characters": []
+}

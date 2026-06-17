@@ -8,8 +8,8 @@ export default function PricingPage() {
       <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px]" />
 
       <header className="relative z-10 border-b border-white/[0.04]">
-        <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold"><span className="text-gradient-1">Vid</span><span className="text-white/70">Forge</span></Link>
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="text-2xl font-bold"><span className="text-gradient">Vid</span><span className="text-white/70">Forge</span></Link>
           <nav className="flex items-center gap-8">
             <Link href="/auth/sign-in" className="text-sm text-white/50 hover:text-white/90 transition-all">Sign in</Link>
             <Link href="/auth/sign-up" className="text-sm bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-white/20 px-5 py-2.5 rounded-xl transition-all">Get started</Link>

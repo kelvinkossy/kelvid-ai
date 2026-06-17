@@ -12,11 +12,23 @@ const NAV_ITEMS = [
   { href: "/app/billing", label: "Billing", icon: Icons.billing },
 ];
 
-export default function AppShell({ children, credits, email, role }: { children: React.ReactNode; credits: number; email: string; role: string }) {
+export default function AppShell({ children, credits: initialCredits, email, role }: { children: React.ReactNode; credits: number; email: string; role: string }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [credits, setCredits] = useState(initialCredits);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const res = await fetch("/api/user/credits");
+        if (res.ok) { const d = await res.json(); setCredits(d.credits); }
+      } catch {}
+    };
+    fetchCredits();
+    const iv = setInterval(fetchCredits, 15000);
+    return () => clearInterval(iv);
+  }, []);
 
   return (
     <div className="min-h-screen bg-surface flex">
@@ -66,7 +78,7 @@ export default function AppShell({ children, credits, email, role }: { children:
               <Link href="/app/billing" className="md:hidden chip text-[10px] px-2 py-0.5 rounded-md">
                 {credits} cr
               </Link>
-              <a href="/api/auth/signout" className="text-[11px] text-text-tertiary hover:text-text-secondary transition px-2 py-1 rounded-lg hover:bg-white/[0.02]">Sign out</a>
+              <form action="/api/auth/signout" method="POST"><button type="submit" className="text-[11px] text-text-tertiary hover:text-text-secondary transition px-2 py-1 rounded-lg hover:bg-white/[0.02]">Sign out</button></form>
             </div>
           </div>
         </div>
