@@ -4,7 +4,7 @@ import { inter } from "@/lib/fonts";
 import ToastContainer from "@/components/toast";
 
 export const metadata: Metadata = {
-  title: "VidForge — Text-to-Video AI",
+  title: "KelVid AI — Text-to-Video AI",
   description: "Turn your words into stunning AI-generated videos.",
 };
 

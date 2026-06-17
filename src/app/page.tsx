@@ -10,7 +10,7 @@ export default function Home() {
       <header className="relative z-10 border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="text-lg font-semibold tracking-tight">
-            <span className="text-gradient">Vid</span><span className="text-white/50">Forge</span>
+            <span className="text-gradient">Kel</span><span className="text-white/50">Vid AI</span>
           </span>
           <nav className="flex items-center gap-6">
             <Link href="/pricing" className="text-sm text-text-tertiary hover:text-text-secondary transition-all duration-200">Pricing</Link>
@@ -58,7 +58,7 @@ export default function Home() {
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
                 </div>
-                <span className="text-[10px] text-text-tertiary/30 ml-2 font-mono">studio.vidforge.app</span>
+                <span className="text-[10px] text-text-tertiary/30 ml-2 font-mono">studio.kelvid.ai</span>
               </div>
 
               <div className="p-8 md:p-10 flex flex-col items-center">
@@ -108,7 +108,7 @@ export default function Home() {
       </section>
 
       <section className="relative z-10 border-t border-border py-12 text-center text-xs text-text-tertiary/40">
-        <p>VidForge &mdash; AI video generation, simplified.</p>
+        <p>KelVid AI &mdash; AI video generation, simplified.</p>
       </section>
     </div>
   );

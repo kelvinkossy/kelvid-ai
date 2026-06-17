@@ -1,9 +1,9 @@
-app = "vidforge"
+app = "kelvid-ai"
 primary_region = "lhr"
 
 [env]
   FLY_VOLUME_PATH = "/data"
-  NEXT_PUBLIC_BASE_URL = "https://vidforge.fly.dev"
+  NEXT_PUBLIC_BASE_URL = "https://kelvid-ai.fly.dev"
 
 [http_service]
   internal_port = 3000
@@ -13,5 +13,5 @@ primary_region = "lhr"
   min_machines_running = 0
 
 [[mounts]]
-  source = "vidforge_data"
+  source = "kelvid_data"
   destination = "/data"

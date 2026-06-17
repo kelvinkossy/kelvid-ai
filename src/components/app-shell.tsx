@@ -36,9 +36,8 @@ export default function AppShell({ children, credits: initialCredits, email, rol
         <div className="px-4 h-14 flex items-center border-b border-border">
           <Link href="/app/studio" className="flex items-center gap-2" prefetch={true}>
             <Icons.logo />
-            <span className="text-sm font-semibold"><span className="text-gradient">Vid</span><span className="text-white/50">Forge</span></span>
+            <span className="text-sm font-semibold"><span className="text-gradient">Kel</span><span className="text-white/50">Vid AI</span></span>
           </Link>
-        </div>
 
         <nav className="flex-1 p-2 space-y-0.5">
           {NAV_ITEMS.map((item) => {
@@ -94,7 +93,7 @@ export default function AppShell({ children, credits: initialCredits, email, rol
           <div className="absolute left-0 top-0 h-full w-64 bg-surface-2 p-4 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <Link href="/app/studio" className="flex items-center gap-2 mb-6" prefetch={true}>
               <Icons.logo />
-              <span className="text-sm font-semibold"><span className="text-gradient">Vid</span><span className="text-white/50">Forge</span></span>
+              <span className="text-sm font-semibold"><span className="text-gradient">Kel</span><span className="text-white/50">Vid AI</span></span>
             </Link>
             <nav className="space-y-0.5">
               {NAV_ITEMS.map((item) => (

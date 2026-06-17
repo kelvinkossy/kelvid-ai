@@ -6,7 +6,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex">
       <aside className="w-56 border-r border-white/10 p-6 space-y-4">
-        <Link href="/admin" className="block text-lg font-bold text-amber-400">VidForge Admin</Link>
+        <Link href="/admin" className="block text-lg font-bold text-amber-400">KelVid AI Admin</Link>
         <nav className="flex flex-col gap-2 text-sm">
           <Link href="/admin" className="text-slate-300 hover:text-white">Overview</Link>
           <Link href="/admin/users" className="text-slate-300 hover:text-white">Users</Link>

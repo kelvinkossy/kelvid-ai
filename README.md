@@ -1,4 +1,4 @@
-# VidForge
+# KelVid AI
 
 ## Quick start
 ```bash
