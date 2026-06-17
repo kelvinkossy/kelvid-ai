@@ -1,17 +1,29 @@
-app = "kelvid-ai"
-primary_region = "lhr"
+# fly.toml app configuration file generated for kelvid-ai-empty-butterfly-424 on 2026-06-18T00:50:48+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'kelvid-ai-empty-butterfly-424'
+primary_region = 'lhr'
+
+[build]
 
 [env]
-  FLY_VOLUME_PATH = "/data"
-  NEXT_PUBLIC_BASE_URL = "https://kelvid-ai.fly.dev"
+  FLY_VOLUME_PATH = '/data'
+  NEXT_PUBLIC_BASE_URL = 'https://kelvid-ai.fly.dev'
+
+[[mounts]]
+  source = 'kelvid_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
-[[mounts]]
-  source = "kelvid_data"
-  destination = "/data"
+[[vm]]
+  memory = '1gb'
+  cpus = 1
+  memory_mb = 1024
