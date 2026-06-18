@@ -38,7 +38,8 @@ export default function AppShell({ children, credits: initialCredits, email, rol
             <Icons.logo />
             <span className="text-sm font-semibold"><span className="text-gradient">Kel</span><span className="text-white/50">Vid AI</span></span>
           </Link>
-          <nav className="flex-1 p-2 space-y-0.5">
+        </div>
+        <nav className="flex-1 p-2 space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
@@ -53,13 +54,12 @@ export default function AppShell({ children, credits: initialCredits, email, rol
             );
           })}
         </nav>
-
         <div className="p-3 border-t border-border">
           <div className="rounded-xl bg-white/[0.03] p-2.5">
             <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">Credits</p>
             <p className="text-lg font-bold text-gradient">{credits}</p>
           </div>
-          {role === "ADMIN" && <Link href="/admin" className="flex items-center gap-2 px-3 py-2 mt-2 rounded-xl text-xs text-amber-400/40 hover:text-amber-400 hover:bg-amber-400/[0.03] transition-all">⚙ Admin</Link>}
+          {role === "ADMIN" && <Link href="/admin" className="flex items-center gap-2 px-3 py-2 mt-2 rounded-xl text-xs text-amber-400/40 hover:text-amber-400 hover:bg-amber-400/[0.03] transition-all">&#9881; Admin</Link>}
         </div>
       </aside>
 
