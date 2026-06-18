@@ -38,8 +38,7 @@ export default function AppShell({ children, credits: initialCredits, email, rol
             <Icons.logo />
             <span className="text-sm font-semibold"><span className="text-gradient">Kel</span><span className="text-white/50">Vid AI</span></span>
           </Link>
-
-        <nav className="flex-1 p-2 space-y-0.5">
+          <nav className="flex-1 p-2 space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
