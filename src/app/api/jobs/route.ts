@@ -129,11 +129,11 @@ async function pollReplicate(predictionId: string, token: string, jobId: string)
 
 async function tryHFGeneration(prompt: string, token: string, jobId: string): Promise<boolean> {
   try {
-    const endpoint = "https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b";
+    const endpoint = process.env.HF_ENDPOINT_URL || "https://api-inference.huggingface.co/models/ali-vilab/text-to-video-ms-1.7b";
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ inputs: prompt, parameters: { wait_for_model: true } }),
+      body: JSON.stringify({ inputs: prompt }),
       signal: AbortSignal.timeout(180000),
     });
 
